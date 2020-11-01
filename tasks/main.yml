@@ -40,6 +40,7 @@
   args:
     executable: /bin/bash
   when: iptables_enable_ipv6
+  changed_when: false
 
 - name: IPTables | Copy script
   copy:
@@ -73,7 +74,7 @@
     state: "{{ iptables_state }}"
     enabled: "{{ iptables_at_boot }}"
 
-- name: IPTables | Check if ufw package is installed (on Ubuntu).
+- name: IPTables | Check if ufw package is installed.
   command: service ufw status
   args:
     warn: false
@@ -84,7 +85,7 @@
     - iptables_disable_ufw
   check_mode: false
 
-- name: IPTables | Disable the ufw firewall (on Ubuntu, if configured).
+- name: IPTables | Disable the ufw firewall, if installed.
   service:
     name: ufw
     state: stopped
