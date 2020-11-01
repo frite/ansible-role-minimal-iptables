@@ -1,0 +1,47 @@
+# {{ ansible_managed }}
+*filter
+# By default drop
+:INPUT DROP
+:OUTPUT DROP
+:FORWARD DROP
+
+# Allow DNS
+-A OUTPUT -p udp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT  -p udp --sport 53 -m state --state ESTABLISHED     -j ACCEPT
+-A OUTPUT -p tcp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT  -p tcp --sport 53 -m state --state ESTABLISHED     -j ACCEPT
+# Allow outbound tcp
+-A OUTPUT -p tcp -m state --state NEW -j ACCEPT
+# Allow established connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allow all traffic on the loopback interface
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Accept icmp ping requests.
+-A INPUT -p icmp -j ACCEPT
+
+# Allow NTP traffic for time synchronization.
+-A OUTPUT -p udp --dport 123 -j ACCEPT
+-A INPUT -p udp --sport 123 -j ACCEPT
+
+# Open ports.
+
+{% for port in iptables_allowed_ports %}
+-A INPUT -p {{ port.proto }} --dport {{ port.port }} -j ACCEPT
+{% endfor %}
+
+# Additional rules
+{% for rule in iptables_additional_rules %}
+{{ rule }}
+{% endfor %}
+
+# Log Dropped packets
+-A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Dropped by firewall:"
+
+# Drop everything else
+-A INPUT -j DROP
+
+COMMIT

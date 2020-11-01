@@ -1,0 +1,94 @@
+---
+- name: IPTables | Install iptables
+  package:
+    name: "{{ iptables_package }}"
+    state: present
+
+- name: IPTables | Install additional packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ iptables_additional_packages }}"
+
+- name: IPTables | Create IPv4 rules.
+  template:
+    src: etc/iptables/rules.j2
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: 0744
+  notify: restart firewall
+
+- name: IPTables | Create IPv6 rules.
+  template:
+    src: etc/iptables/rules.j2
+    dest: /etc/iptables/rules.v6
+    owner: root
+    group: root
+    mode: 0744
+  notify: restart firewall
+  when: iptables_enable_ipv6
+
+- name: IPTables | Load IPv4 rules
+  shell: iptables-restore < /etc/iptables/rules.v4
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: IPTables | Load IPv6 rules
+  shell: iptables-restore < /etc/iptables/rules.v6
+  args:
+    executable: /bin/bash
+  when: iptables_enable_ipv6
+
+- name: IPTables | Copy script
+  copy:
+    src: etc/firewall
+    dest: /etc/firewall
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: IPTables | Configure service when initd
+  template:
+    src: etc/init.d/firewall.j2
+    dest: /etc/init.d/firewall
+    owner: root
+    group: root
+    mode: 0755
+  when: "ansible_service_mgr != 'systemd'"
+
+- name: IPTables | Configure service when systemd
+  template:
+    src: etc/systemd/system/firewall.service.j2
+    dest: /etc/systemd/system/firewall.service
+    owner: root
+    group: root
+    mode: 0644
+  when: "ansible_service_mgr == 'systemd'"
+
+- name: IPTables | Configure the firewall service.
+  service:
+    name: firewall
+    state: "{{ iptables_state }}"
+    enabled: "{{ iptables_at_boot }}"
+
+- name: IPTables | Check if ufw package is installed (on Ubuntu).
+  command: service ufw status
+  args:
+    warn: false
+  register: ufw_installed
+  ignore_errors: true
+  changed_when: false
+  when:
+    - iptables_disable_ufw
+  check_mode: false
+
+- name: IPTables | Disable the ufw firewall (on Ubuntu, if configured).
+  service:
+    name: ufw
+    state: stopped
+    enabled: false
+  when:
+    - iptables_disable_ufw
+    - ufw_installed.rc == 0

@@ -1,0 +1,24 @@
+---
+iptables_package: iptables
+iptables_additional_packages:
+  - iptables-persistent
+  - netfilter-persistent
+iptables_disable_ufw: true
+
+iptables_state: started
+iptables_at_boot: true
+iptables_rules:
+  - { port: 22, proto: TCP }
+
+
+
+iptables_flush: true
+iptables_allowed_ports:
+  - { port: 22, proto: TCP }
+
+iptables_forwarded_ports: []
+
+iptables_additional_rules: []
+iptables_enable_ipv6: true
+iptables_ipv6_additional_rules: []
+iptables_log_dropped_packets: true

@@ -1,0 +1,30 @@
+---
+# This is an example playbook to execute Ansible tests.
+
+- name: Verify
+  hosts: all
+  tasks:
+  - name: Populate service facts
+    service_facts:
+
+  - name: Ensure firewall is running
+    assert:
+      that: (ansible_facts.services.firewall is defined) and (ansible_facts.services.firewall.state == 'running')
+
+  - name: Check if IPv4 rules exist.
+    stat:
+      path: /etc/iptables/rules.v4
+    register: rules_v4
+
+  - name: Verify IPv4 rules exist
+    assert:
+      that: rules_v4.stat.exists is true and rules_v4.stat.mode == '0744'
+
+  - name: Check if IPv6 rules exist.
+    stat:
+      path: /etc/iptables/rules.v6
+    register: rules_v6
+
+  - name: Verify IPv6 rules exist
+    assert:
+      that: rules_v6.stat.exists is true and rules_v6.stat.mode == '0744'
